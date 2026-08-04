@@ -2,8 +2,10 @@ name: Daily Auto Commit
 
 on:
   schedule:
-    # Runs at 18:00 UTC (11:30 PM IST) every day
-    - cron: '0 18 * * *'
+    # Runs every 8 hours (00:00, 08:00, 16:00 UTC) which corresponds to
+    # 5:30 AM, 1:30 PM, and 9:30 PM IST.
+    # Running multiple times ensures your contribution is guaranteed even if GitHub Actions has delays.
+    - cron: '0 */8 * * *'
   workflow_dispatch: # Allows manual trigger from GitHub UI
 
 jobs:
