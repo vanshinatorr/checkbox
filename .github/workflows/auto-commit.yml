@@ -1,0 +1,25 @@
+name: Daily Auto Commit
+
+on:
+  schedule:
+    # Runs at 18:00 UTC (11:30 PM IST) every day
+    - cron: '0 18 * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+
+jobs:
+  auto-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Update Heartbeat File
+        run: |
+          echo "Last heartbeat: $(date)" > heartbeat.txt
+
+      - name: Commit and Push
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add heartbeat.txt
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: daily heartbeat [skip ci]" && git push)
