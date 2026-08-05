@@ -21,7 +21,7 @@ jobs:
 
       - name: Commit and Push
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
+          git config --local user.email "vanshvijay9784@gmail.com"
+          git config --local user.name "Vansh"
           git add heartbeat.txt
           git diff --quiet && git diff --staged --quiet || (git commit -m "chore: daily heartbeat [skip ci]" && git push)
