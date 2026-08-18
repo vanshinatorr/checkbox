@@ -12,37 +12,57 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 5 # Fetch history to check last commit dates
 
-      - name: Determine if commit should run
-        id: decide
-        run: |
-          PROB=$(( RANDOM % 100 ))
-          echo "Probability score: $PROB"
-          if [ $PROB -lt 30 ]; then
-            echo "should_run=true" >> "$GITHUB_OUTPUT"
-            echo "Decision: Proceeding with telemetry sync."
-          else
-            echo "should_run=false" >> "$GITHUB_OUTPUT"
-            echo "Decision: Skipping this interval to optimize buffer capacity."
-          fi
-
-      - name: Apply jitter delay
-        if: steps.decide.outputs.should_run == 'true'
-        run: |
-          # Sleep for a random jitter between 1 and 20 minutes (60-1200 seconds)
-          DELAY=$(( 60 + RANDOM % 1140 ))
-          echo "Applying stream synchronization jitter delay: $DELAY seconds..."
-          sleep $DELAY
-
-      - name: Update Telemetry Data and Select Commit Message
-        if: steps.decide.outputs.should_run == 'true'
+      - name: Determine if commit should run and update cache
+        id: telemetry
         shell: python
         run: |
           import json
           import random
+          import subprocess
+          import os
           from datetime import datetime, timezone
 
-          # 1. Update telemetry_cache.json
+          # 1. Fetch git history to protect daily contribution streak
+          today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+          try:
+              last_commit_date_str = subprocess.check_output(
+                  ["git", "log", "-n", "1", "--format=%aI"]
+              ).decode("utf-8").strip()
+              # Format is YYYY-MM-DDTHH:MM:SS+00:00
+              last_commit_date = last_commit_date_str.split("T")[0]
+          except Exception as e:
+              print("Error reading git log:", e)
+              last_commit_date = ""
+
+          is_already_committed_today = (last_commit_date == today_str)
+          current_hour = datetime.now(timezone.utc).hour
+
+          # Probability check (30% chance)
+          prob = random.randint(0, 99)
+          should_run = False
+
+          if not is_already_committed_today and current_hour >= 16:
+              # Force run to protect daily streak in the last hours of the day
+              should_run = True
+              print("Streak protection active (no commits today, current hour is {} UTC). FORCING commit.".format(current_hour))
+          elif prob < 30:
+              should_run = True
+              print("Probability gate passed ({} < 30). Proceeding with commit.".format(prob))
+          else:
+              print("Probability gate failed ({} >= 30). Skipping interval.".format(prob))
+
+          # Set output parameter for subsequent steps
+          if 'GITHUB_OUTPUT' in os.environ:
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
+                  fh.write("should_run={}\n".format("true" if should_run else "false"))
+
+          if not should_run:
+              exit(0)
+
+          # 2. Update telemetry_cache.json with mock metrics
           try:
               with open('telemetry_cache.json', 'r') as f:
                   data = json.load(f)
@@ -83,35 +103,83 @@ jobs:
           with open('telemetry_cache.json', 'w') as f:
               json.dump(data, f, indent=2)
 
-          # 2. Select random commit message
+          # 3. Select commit message from pool of 60 highly realistic developer logs
           commit_messages = [
-              "fix: resolve buffer overflow in stream reader",
-              "refactor: optimize cache eviction cycle",
-              "chore: update telemetry payload schema and version",
-              "perf: reduce serialization latency in logger",
-              "fix: handle connection timeout in transport layer",
-              "docs: update telemetry schema specifications",
-              "test: expand coverage for telemetry buffer queue",
-              "chore: clean up deprecated helper methods in parser",
-              "refactor: extract serialization logic to sub-module",
-              "perf: minimize payload size in network transport",
-              "fix: catch null pointer exception in frame parser",
-              "feat: implement adaptive backoff in stream client",
-              "perf: optimize memory footprint of local buffer heap",
-              "chore: align buffer flush interval parameters",
-              "fix: prevent duplicate packets on handshake retry",
-              "refactor: streamline socket write buffers",
-              "docs: amend internal developer guidelines for metrics",
-              "test: add integration test for backoff queue swap",
-              "fix: resolve race condition in worker synchronization",
-              "perf: improve lookup performance in local cache indexes"
+              "fix: resolve buffer overflow in stream reader on high load",
+              "fix: handle connection timeout in transport socket layer",
+              "fix: prevent duplicate packets on handshake recovery retry",
+              "fix: resolve race condition in worker thread synchronization",
+              "fix: catch null pointer exception in frame parser validation",
+              "fix: correct memory alignment in ring buffer queue allocation",
+              "fix: handle partial socket writes in data stream client",
+              "fix: prevent heap exhaustion during high-frequency telemetry load",
+              "fix: resolve file descriptor leak in daemon shutdown handler",
+              "fix: prevent spinlock deadlock during queue eviction cycles",
+              "fix: handle parsing of malformed JSON swap files correctly",
+              "fix: sanitize telemetry log inputs to prevent encoding failures",
+              "fix: correct calculation of average response latency metrics",
+              "fix: resolve edge case in buffer swap file index rotation",
+              "fix: handle sigterm signals gracefully in worker threadpool",
+              "feat: implement adaptive backoff logic in stream connection client",
+              "feat: support custom path variables for swap file directories",
+              "feat: introduce strict size bounds for ring buffer memory queues",
+              "feat: add batching configurations to telemetry stream daemon",
+              "feat: add verbose debugging flags in telemetry logging module",
+              "feat: implement system thread priorities for background flushing",
+              "feat: support structured metrics parsing in core telemetry parser",
+              "feat: add keeptrace flag to retain failed logs in queue swap",
+              "feat: implement high-resolution timers in socket timeout handlers",
+              "feat: add thread pool load indicators in telemetry metrics",
+              "perf: optimize memory footprint of local buffer swap heap",
+              "perf: reduce serialization latency in JSON logger encoder",
+              "perf: minimize payload footprint in network transport serializer",
+              "perf: optimize lookup performance in local cache indices",
+              "perf: streamline socket write buffers to bypass kernel allocations",
+              "perf: avoid copying log blocks during flush queue processing",
+              "perf: use flat map instead of hash map for component metadata",
+              "perf: reduce lock contention in shared queue by using double buffers",
+              "perf: cache system time queries to reduce syslog kernel overhead",
+              "perf: inline critical logging functions to minimize call frame overhead",
+              "refactor: decouple stream interface from network socket client",
+              "refactor: simplify frame processing state machine logic",
+              "refactor: extract serialization logic to sub-module parser",
+              "refactor: clean up deprecated helper methods in parser classes",
+              "refactor: align buffer flush interval configuration parameters",
+              "refactor: consolidate socket retry parameters into config structure",
+              "refactor: isolate memory mapping calls to system-specific headers",
+              "refactor: convert raw pointers to smart pointers in threadpool",
+              "refactor: modularize telemetry payload validator modules",
+              "refactor: migrate logger output formatting to utility helper class",
+              "test: expand coverage for telemetry buffer queue edge cases",
+              "test: add integration test for backoff queue swap file creation",
+              "test: add unit tests for ring buffer memory bound exhaustion",
+              "test: verify thread synchronization in multi-worker simulation",
+              "test: expand coverage for transport retry socket connections",
+              "docs: update telemetry schema specifications in README",
+              "docs: clarify buffer configuration parameters in technical details",
+              "docs: document thread safety assumptions for client integrations",
+              "docs: add build and cmake configuration steps to readme file",
+              "docs: update license headers across core C++ source files",
+              "chore: update cmake build constraints and check for C++17 support",
+              "chore: clean up header files and format code using clang-format",
+              "chore: update gitignore for temporary build assets and binaries",
+              "chore: bump engine version patch number to 1.4.2 in header",
+              "chore: configure build scripts for clean static compiling optimization"
           ]
           chosen_msg = random.choice(commit_messages) + " [skip ci]"
           with open('.commit_msg', 'w') as f:
               f.write(chosen_msg + "\n")
 
+      - name: Apply jitter delay
+        if: steps.telemetry.outputs.should_run == 'true'
+        run: |
+          # Sleep for a random jitter between 1 and 20 minutes (60-1200 seconds)
+          DELAY=$(( 60 + RANDOM % 1140 ))
+          echo "Applying stream synchronization jitter delay: $DELAY seconds..."
+          sleep $DELAY
+
       - name: Commit and Push
-        if: steps.decide.outputs.should_run == 'true'
+        if: steps.telemetry.outputs.should_run == 'true'
         run: |
           git config --local user.email "vanshvijay9784@gmail.com"
           git config --local user.name "Vansh"
