@@ -9,11 +9,13 @@ on:
 jobs:
   telemetry-sync:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 5 # Fetch history to check last commit dates
+          fetch-depth: 20 # Fetch history to check last commit dates
 
       - name: Determine if commit should run and update cache
         id: telemetry
@@ -186,4 +188,5 @@ jobs:
           git add telemetry_cache.json
           COMMIT_MSG=$(cat .commit_msg)
           git commit -m "$COMMIT_MSG"
+          git pull --rebase origin main
           git push
