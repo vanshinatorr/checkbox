@@ -175,8 +175,8 @@ jobs:
       - name: Apply jitter delay
         if: steps.telemetry.outputs.should_run == 'true'
         run: |
-          # Sleep for a random jitter between 1 and 20 minutes (60-1200 seconds)
-          DELAY=$(( 60 + RANDOM % 1140 ))
+          # Sleep for a random jitter between 1 and 5 minutes (60-300 seconds)
+          DELAY=$(( 60 + RANDOM % 240 ))
           echo "Applying stream synchronization jitter delay: $DELAY seconds..."
           sleep $DELAY
 
