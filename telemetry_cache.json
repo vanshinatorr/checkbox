@@ -1,0 +1,37 @@
+{
+  "status": "active",
+  "engine_version": "1.4.2",
+  "last_telemetry_flush": "2026-08-18T15:09:53.133242+00:00",
+  "metrics": {
+    "buffer_usage_percentage": 41.3,
+    "total_packets_buffered": 1738,
+    "active_stream_workers": 3,
+    "avg_latency_ms": 26.8
+  },
+  "log_queue": [
+    {
+      "timestamp": "2026-08-18T20:30:12Z",
+      "level": "INFO",
+      "component": "buffer_manager",
+      "message": "Buffered metrics packet, size: 245 bytes"
+    },
+    {
+      "timestamp": "2026-08-18T20:35:45Z",
+      "level": "INFO",
+      "component": "stream_client",
+      "message": "Established secure stream handshake with endpoint"
+    },
+    {
+      "timestamp": "2026-08-18T15:09:42.956673Z",
+      "level": "INFO",
+      "component": "stream_client",
+      "message": "Established secure stream handshake with endpoint"
+    },
+    {
+      "timestamp": "2026-08-18T15:09:53.133439+00:00",
+      "level": "WARN",
+      "component": "stream_client",
+      "message": "Ingestion gateway handshake latency: 416ms"
+    }
+  ]
+}

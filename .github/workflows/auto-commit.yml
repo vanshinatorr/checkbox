@@ -1,27 +1,121 @@
-name: Daily Auto Commit
+name: Telemetry Cache Stream Sync
 
 on:
   schedule:
-    # Runs every 8 hours (00:00, 08:00, 16:00 UTC) which corresponds to
-    # 5:30 AM, 1:30 PM, and 9:30 PM IST.
-    # Running multiple times ensures your contribution is guaranteed even if GitHub Actions has delays.
-    - cron: '0 */8 * * *'
+    # Runs every 4 hours to simulate periodic cache metrics syncing
+    - cron: '0 */4 * * *'
   workflow_dispatch: # Allows manual trigger from GitHub UI
 
 jobs:
-  auto-commit:
+  telemetry-sync:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Update Heartbeat File
+      - name: Determine if commit should run
+        id: decide
         run: |
-          echo "Last heartbeat: $(date)" > heartbeat.txt
+          PROB=$(( RANDOM % 100 ))
+          echo "Probability score: $PROB"
+          if [ $PROB -lt 30 ]; then
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+            echo "Decision: Proceeding with telemetry sync."
+          else
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+            echo "Decision: Skipping this interval to optimize buffer capacity."
+          fi
+
+      - name: Apply jitter delay
+        if: steps.decide.outputs.should_run == 'true'
+        run: |
+          # Sleep for a random jitter between 1 and 20 minutes (60-1200 seconds)
+          DELAY=$(( 60 + RANDOM % 1140 ))
+          echo "Applying stream synchronization jitter delay: $DELAY seconds..."
+          sleep $DELAY
+
+      - name: Update Telemetry Data and Select Commit Message
+        if: steps.decide.outputs.should_run == 'true'
+        shell: python
+        run: |
+          import json
+          import random
+          from datetime import datetime, timezone
+
+          # 1. Update telemetry_cache.json
+          try:
+              with open('telemetry_cache.json', 'r') as f:
+                  data = json.load(f)
+          except Exception:
+              data = {
+                  "status": "active",
+                  "engine_version": "1.4.2",
+                  "metrics": {},
+                  "log_queue": []
+              }
+
+          data["last_telemetry_flush"] = datetime.now(timezone.utc).isoformat()
+          data["metrics"]["buffer_usage_percentage"] = round(random.uniform(5.0, 95.0), 1)
+          data["metrics"]["total_packets_buffered"] = random.randint(500, 5000)
+          data["metrics"]["active_stream_workers"] = random.randint(2, 8)
+          data["metrics"]["avg_latency_ms"] = round(random.uniform(5.0, 35.0), 1)
+
+          logs = [
+              ("INFO", "buffer_manager", "Buffered metrics packet, size: {} bytes".format(random.randint(100, 500))),
+              ("INFO", "stream_client", "Established secure stream handshake with endpoint"),
+              ("DEBUG", "telemetry_core", "Polled kernel statistics database"),
+              ("INFO", "buffer_manager", "Evicted {} expired entries from memory heap".format(random.randint(5, 50))),
+              ("WARN", "stream_client", "Ingestion gateway handshake latency: {}ms".format(random.randint(100, 1500))),
+              ("INFO", "stream_client", "Successfully dispatched queued packets payload")
+          ]
+          level, comp, msg = random.choice(logs)
+          new_log = {
+              "timestamp": datetime.now(timezone.utc).isoformat(),
+              "level": level,
+              "component": comp,
+              "message": msg
+          }
+          data["log_queue"].append(new_log)
+
+          if len(data["log_queue"]) > 10:
+              data["log_queue"] = data["log_queue"][-10:]
+
+          with open('telemetry_cache.json', 'w') as f:
+              json.dump(data, f, indent=2)
+
+          # 2. Select random commit message
+          commit_messages = [
+              "fix: resolve buffer overflow in stream reader",
+              "refactor: optimize cache eviction cycle",
+              "chore: update telemetry payload schema and version",
+              "perf: reduce serialization latency in logger",
+              "fix: handle connection timeout in transport layer",
+              "docs: update telemetry schema specifications",
+              "test: expand coverage for telemetry buffer queue",
+              "chore: clean up deprecated helper methods in parser",
+              "refactor: extract serialization logic to sub-module",
+              "perf: minimize payload size in network transport",
+              "fix: catch null pointer exception in frame parser",
+              "feat: implement adaptive backoff in stream client",
+              "perf: optimize memory footprint of local buffer heap",
+              "chore: align buffer flush interval parameters",
+              "fix: prevent duplicate packets on handshake retry",
+              "refactor: streamline socket write buffers",
+              "docs: amend internal developer guidelines for metrics",
+              "test: add integration test for backoff queue swap",
+              "fix: resolve race condition in worker synchronization",
+              "perf: improve lookup performance in local cache indexes"
+          ]
+          chosen_msg = random.choice(commit_messages) + " [skip ci]"
+          with open('.commit_msg', 'w') as f:
+              f.write(chosen_msg + "\n")
 
       - name: Commit and Push
+        if: steps.decide.outputs.should_run == 'true'
         run: |
           git config --local user.email "vanshvijay9784@gmail.com"
           git config --local user.name "Vansh"
-          git add heartbeat.txt
-          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: daily heartbeat [skip ci]" && git push)
+          git add telemetry_cache.json
+          COMMIT_MSG=$(cat .commit_msg)
+          git commit -m "$COMMIT_MSG"
+          git push
