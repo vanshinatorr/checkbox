@@ -1,12 +1,12 @@
 {
   "status": "active",
   "engine_version": "1.4.2",
-  "last_telemetry_flush": "2026-08-19T16:21:34.817131+00:00",
+  "last_telemetry_flush": "2026-08-20T16:25:10.117388+00:00",
   "metrics": {
-    "buffer_usage_percentage": 81.7,
-    "total_packets_buffered": 3427,
-    "active_stream_workers": 5,
-    "avg_latency_ms": 28.1
+    "buffer_usage_percentage": 35.8,
+    "total_packets_buffered": 3367,
+    "active_stream_workers": 6,
+    "avg_latency_ms": 31.4
   },
   "log_queue": [
     {
@@ -50,6 +50,12 @@
       "level": "DEBUG",
       "component": "telemetry_core",
       "message": "Polled kernel statistics database"
+    },
+    {
+      "timestamp": "2026-08-20T16:25:10.117410+00:00",
+      "level": "WARN",
+      "component": "stream_client",
+      "message": "Ingestion gateway handshake latency: 328ms"
     }
   ]
 }
