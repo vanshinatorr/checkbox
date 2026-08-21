@@ -1,12 +1,12 @@
 {
   "status": "active",
   "engine_version": "1.4.2",
-  "last_telemetry_flush": "2026-08-20T20:19:47.228366+00:00",
+  "last_telemetry_flush": "2026-08-21T04:30:31.188969+00:00",
   "metrics": {
-    "buffer_usage_percentage": 67.4,
-    "total_packets_buffered": 695,
-    "active_stream_workers": 5,
-    "avg_latency_ms": 24.6
+    "buffer_usage_percentage": 92.5,
+    "total_packets_buffered": 2275,
+    "active_stream_workers": 6,
+    "avg_latency_ms": 30.4
   },
   "log_queue": [
     {
@@ -62,6 +62,12 @@
       "level": "INFO",
       "component": "buffer_manager",
       "message": "Buffered metrics packet, size: 473 bytes"
+    },
+    {
+      "timestamp": "2026-08-21T04:30:31.188992+00:00",
+      "level": "INFO",
+      "component": "buffer_manager",
+      "message": "Evicted 25 expired entries from memory heap"
     }
   ]
 }
